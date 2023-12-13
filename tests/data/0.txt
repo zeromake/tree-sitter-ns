@@ -1,0 +1,10 @@
+;mode800
+*define
+game
+
+*start
+mov %1,1
+mov $1,"测试文本"
+$1
+goto *start
+end
