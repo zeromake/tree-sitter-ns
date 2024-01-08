@@ -1,8 +1,15 @@
 ;mode800
 *define
+caption"DC2PC for ONS v0.2x"
+transmode alpha
+menuselectcolor #ffff00,#ffffff,#828282
+dim ?0[74][10]
+
 game
 
 *start
+notif %324==29 mov %324,1
+mov %1,0
 mov %1,1
 mov $1,"测试文本"
 $1
