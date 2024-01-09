@@ -8,7 +8,8 @@ dim ?0[74][10]
 game
 
 *start
-notif %324==29 mov %324,1
+if %(%0 + 1)=29 mov %324,1
+else mov %324,0
 mov %1,0
 mov %1,1
 mov $1,"测试文本"

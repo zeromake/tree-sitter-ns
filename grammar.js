@@ -15,6 +15,8 @@ module.exports = grammar({
     document: $ => repeat(
       choice(
         $.comment,
+        $.if_expression,
+        $.else_expression,
         $.command,
         $.label,
         // 使用变量渲染文本
@@ -28,10 +30,23 @@ module.exports = grammar({
     variable_name: $ => seq(/[a-zA-Z]/, /[0-9a-zA-Z_-]+/),
     // 标签
     label: $ => seq('*', $.variable_name),
+    // 使用 int 生成其它变量
+    integer_calc: $ => {
+      const left_expression = choice($.integer, $.raw_integer_variable, $.array_item_expr, $.raw_array_variable);
+      const op_expression = choice('+', '-', '*', '/', 'mod');
+      const expression_one = seq(left_expression, op_expression, left_expression);
+      return seq('(', expression_one, repeat(seq(op_expression, left_expression)),')');
+    },
+    integer_calc_variable: $ => prec.right(1, seq('%', $.integer_calc)),
+    string_calc_variable: $ => prec.right(1, seq('$', $.integer_calc)),
+    array_calc_variable: $ => prec.right(1, seq('?', $.integer_calc)),
     // 三种变量
-    string_variable: $ => seq('$', choice($.integer, $.variable_name)),
-    integer_variable: $ => seq('%', choice($.integer, $.variable_name)),
-    array_variable: $ => seq('?', choice($.integer, $.variable_name)),
+    raw_string_variable: $ => seq('$', choice($.integer, $.variable_name)),
+    raw_integer_variable: $ => seq('%', choice($.integer, $.variable_name)),
+    raw_array_variable: $ => seq('?', choice($.integer, $.variable_name)),
+    string_variable: $ => choice($.raw_string_variable, $.string_calc_variable),
+    integer_variable: $ => choice($.raw_integer_variable, $.integer_calc_variable),
+    array_variable: $ => choice($.raw_array_variable, $.array_calc_variable),
     // int string array 变量
     variable: $ => choice($.string_variable, $.integer_variable, $.array_variable),
     // 数组下标
@@ -67,6 +82,20 @@ module.exports = grammar({
       $.label,
       $.hex_color
     ),
+    if_expression: $ => {
+      const integer_if_expression = choice($.variable, $.integer, $.string);
+      const op_if_expression = choice('<>', '>', '<', '>=', '<=', '==', '=', '!=');
+      const if_expression_one = seq(integer_if_expression, op_if_expression, integer_if_expression);
+      // 把表达式内嵌到 if 语句里
+      return prec.right(1, seq(
+        choice('if', 'notif', 'elseif', 'elif'),
+        ' ',
+        if_expression_one,
+        repeat(seq(choice('||', '&&'), if_expression_one)),
+        optional($.command),
+      ));
+    },
+    else_expression: $ => prec.right(1, seq('else', optional(seq(' ', $.command)))),
     // 命令语句
     command: $ => seq(
       field("command", $.variable_name),
