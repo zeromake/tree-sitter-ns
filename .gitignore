@@ -1,5 +1,10 @@
 node_modules
-src
+/src
 bindings
 binding.gyp
 Cargo.toml
+Cargo.lock
+target
+.xmake
+.vscode
+build
