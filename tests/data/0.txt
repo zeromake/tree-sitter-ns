@@ -6,9 +6,13 @@ menuselectcolor #ffff00,#ffffff,#828282
 dim ?0[74][10]
 
 game
+mov %324,%0-1
+
+setwindow "sys\duihuaka2.png"
+mov %1,%551+%552+%553+%554+%555
 
 *start
-if %(%0 + 1)=29 mov %324,1
+if %(%0+1)=29 mov %324,1
 else mov %324,0
 mov %1,0
 mov %1,1

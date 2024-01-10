@@ -59,7 +59,7 @@ int main(const int argc, const char* argv[]) {
                 auto point1 = ts_node_start_point(child_node);
                 auto point2 = ts_node_end_point(child_node);
                 auto type = ts_node_type(child_node);
-                printf("(%s [%d, %d] - [%d, %d])\n", type, point1.row, point1.column, point2.row, point2.column);
+                printf("(%s [%d, %d] - [%d, %d])\n", type, point1.row+1, point1.column+1, point2.row+1, point2.column+1);
             }
         }
     }

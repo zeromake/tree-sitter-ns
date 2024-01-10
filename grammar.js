@@ -35,17 +35,21 @@ module.exports = grammar({
       const left_expression = choice($.integer, $.raw_integer_variable, $.array_item_expr, $.raw_array_variable);
       const op_expression = choice('+', '-', '*', '/', 'mod');
       const expression_one = seq(left_expression, op_expression, left_expression);
-      return seq('(', expression_one, repeat(seq(op_expression, left_expression)),')');
+      return prec.right(1, seq(expression_one, repeat(seq(op_expression, left_expression))));
     },
-    integer_calc_variable: $ => prec.right(1, seq('%', $.integer_calc)),
-    string_calc_variable: $ => prec.right(1, seq('$', $.integer_calc)),
-    array_calc_variable: $ => prec.right(1, seq('?', $.integer_calc)),
+    integer_calc_variable: $ => seq('%(', $.integer_calc, ')'),
+    string_calc_variable: $ => seq('$(', $.integer_calc, ')'),
+    array_calc_variable: $ => seq('?(', $.integer_calc, ')'),
     // 三种变量
-    raw_string_variable: $ => seq('$', choice($.integer, $.variable_name)),
     raw_integer_variable: $ => seq('%', choice($.integer, $.variable_name)),
+    raw_string_variable: $ => seq('$', choice($.integer, $.variable_name)),
     raw_array_variable: $ => seq('?', choice($.integer, $.variable_name)),
+    connect_string: $ => {
+      const left_expression = choice($.string, $.string_variable);
+      return prec.left(1, seq(left_expression, repeat1(seq('+', left_expression))));
+    },
     string_variable: $ => choice($.raw_string_variable, $.string_calc_variable),
-    integer_variable: $ => choice($.raw_integer_variable, $.integer_calc_variable),
+    integer_variable: $ => prec.left(2, choice($.raw_integer_variable, $.integer_calc_variable, $.integer_calc)),
     array_variable: $ => choice($.raw_array_variable, $.array_calc_variable),
     // int string array 变量
     variable: $ => choice($.string_variable, $.integer_variable, $.array_variable),
@@ -54,7 +58,7 @@ module.exports = grammar({
     // 字符串表达式
     string: $ => choice(seq('"', '"'), seq('"', $.string_content, '"')),
     string_content: $ => repeat1(choice(
-      token.immediate(prec(1, /[^\\"\n]+/))
+      token.immediate(prec(1, /[^"\n]+/))
     )),
     // 数字表达式
     integer: $ => {
@@ -74,10 +78,11 @@ module.exports = grammar({
     },
     // 参数表达式
     expression: $ => choice(
+      $.connect_string,
+      $.variable,
       $.integer,
       $.string,
       $.array_item_expr,
-      $.variable,
       $.variable_name,
       $.label,
       $.hex_color
@@ -97,7 +102,7 @@ module.exports = grammar({
     },
     else_expression: $ => prec.right(1, seq('else', optional(seq(' ', $.command)))),
     // 命令语句
-    command: $ => seq(
+    command: $ => prec.right(1, seq(
       field("command", $.variable_name),
       prec.left(
         1,
@@ -114,7 +119,7 @@ module.exports = grammar({
           ),
         )
       ),
-    )
+    ))
   }
 });
 
