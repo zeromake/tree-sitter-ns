@@ -8,6 +8,30 @@ function commaSep(rule) {
   return optional(commaSep1(rule))
 }
 
+const PREC = {
+  primary: 7,
+  unary: 6,
+  multiplicative: 5,
+  additive: 4,
+  comparative: 3,
+  and: 2,
+  or: 1,
+};
+
+const multiplicative_operators = ['*', '/', 'mod'];
+const additive_operators = ['+', '-'];
+const comparative_operators = ['==', '=', '!=', '<', '<=', '>', '>=', '<>'];
+
+const hexDigit = /[0-9a-fA-F]/;
+const decimalDigit = /[0-9]/;
+
+const decimalDigits = seq(decimalDigit, repeat(decimalDigit));
+const hexDigits = seq(hexDigit, repeat(hexDigit));
+
+const decimalLiteral = choice('0', seq(/[1-9]/, optional(decimalDigits)));
+const hexLiteral = seq('0', choice('x', 'X'), hexDigits);
+const intLiteral = choice(decimalLiteral, hexLiteral);
+
 module.exports = grammar({
   name: "ns",
   extras: $ => [/\s/],
@@ -24,6 +48,32 @@ module.exports = grammar({
         $.array_item_expr
       )
     ),
+    _expression: $ => choice(
+      $.unary_expression,
+      $.binary_expression,
+      $.int_literal,
+    ),
+    int_literal: _ => token(intLiteral),
+    unary_expression: $ => prec(PREC.unary, seq(
+      field('operator', choice('+', '-')),
+      field('operand', $._expression),
+    )),
+    binary_expression: $ => {
+      const table = [
+        [PREC.multiplicative, choice(...multiplicative_operators)],
+        [PREC.additive, choice(...additive_operators)],
+        [PREC.comparative, choice(...comparative_operators)],
+        [PREC.and, '&&'],
+        [PREC.or, '||'],
+      ];
+      return choice(...table.map(([precedence, operator]) => {
+        return prec.left(precedence, seq(
+          field('left', $._expression),
+          field('operator', operator),
+          field('right', $._expression),
+        ));
+      }));
+    },
     // 注释
     comment: $ => seq(/;.*/),
     // 常规变量名
