@@ -80,12 +80,30 @@ module.exports = grammar({
     variable_name: $ => seq(/[a-zA-Z]/, /[0-9a-zA-Z_-]+/),
     // 标签
     label: $ => seq('*', $.variable_name),
+    integer_expression: $ => prec.left(3, choice(
+      $.integer,
+      $.raw_integer_variable,
+      $.array_item_expr,
+      $.raw_array_variable,
+      $.integer_calc
+    )),
     // 使用 int 生成其它变量
     integer_calc: $ => {
-      const left_expression = choice($.integer, $.raw_integer_variable, $.array_item_expr, $.raw_array_variable);
-      const op_expression = choice('+', '-', '*', '/', 'mod');
-      const expression_one = seq(left_expression, op_expression, left_expression);
-      return prec.right(1, seq(expression_one, repeat(seq(op_expression, left_expression))));
+      const one_expression = [];
+      for ([operator, r] of [
+        ['+', 1],
+        ['-', 1],
+        ['*', 2],
+        ['/', 2],
+        ['mod', 2]
+      ]) {
+        one_expression.push(prec.left(r, (seq(
+            field('left', $.integer_expression),
+            field('op', operator),
+            field('right', $.integer_expression),
+        ))));
+      }
+      return choice(...one_expression);
     },
     integer_calc_variable: $ => seq('%(', $.integer_calc, ')'),
     string_calc_variable: $ => seq('$(', $.integer_calc, ')'),
